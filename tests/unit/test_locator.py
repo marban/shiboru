@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from shiboru.errors import ToolNotFoundError
+from shiboru.tools import locator
 from shiboru.tools.locator import clear_cache, find_tool
 
 
@@ -97,6 +98,7 @@ def test_result_is_cached(tmp_path, monkeypatch):
 def test_clear_cache_forces_re_resolution(tmp_path, monkeypatch):
     exe = _make_exe(tmp_path, "oxipng")
     monkeypatch.setenv("PATH", str(tmp_path))
+    monkeypatch.setattr(locator, "HOMEBREW_PREFIXES", [])
 
     find_tool("oxipng")
 
