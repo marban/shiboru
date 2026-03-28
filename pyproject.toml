@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "shiboru"
+version = "1.0.0"
+description = "macOS command-line image optimizer"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+dependencies = [
+    "scour>=0.38",
+]
+
+[project.scripts]
+shiboru = "shiboru.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/shiboru"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

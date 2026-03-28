@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  test:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Homebrew dependencies
+        run: brew install oxipng jpegoptim gifsicle
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install package and test dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e "." pytest --quiet
+
+      - name: Run unit tests
+        run: .venv/bin/pytest tests/unit -v
+
+      - name: Smoke test — version
+        run: .venv/bin/shiboru --version
+
+      - name: Smoke test — help
+        run: .venv/bin/shiboru --help
