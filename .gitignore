@@ -1,3 +1,7 @@
+# Private / internal docs
+PLAN.md
+AGENTS.md
+
 # Python
 __pycache__/
 *.py[cod]
