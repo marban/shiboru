@@ -1,7 +1,7 @@
 class Shiboru < Formula
   include Language::Python::Virtualenv
 
-  desc "macOS command-line image optimizer for PNG, JPEG, GIF, SVG, and ICO"
+  desc "Opinionated macOS command-line image optimizer for PNG, JPEG, GIF, SVG, and ICO"
   homepage "https://github.com/marban/shiboru"
   url "https://github.com/marban/shiboru/archive/refs/tags/v1.0.4.tar.gz"
   sha256 "15699685441ed44a6756de653442071db83dc44ccb075bdc4ffee784fd829c1b"

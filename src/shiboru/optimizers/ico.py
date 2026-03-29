@@ -1,4 +1,5 @@
 import struct
+import zlib
 from pathlib import Path
 
 from shiboru.errors import OperationError, ToolNotFoundError
@@ -18,6 +19,8 @@ _DIR_ENTRY = struct.Struct("<BBBBHHII")
 
 _HEADER_SIZE = _HEADER.size  # 6 bytes
 _ENTRY_SIZE = _DIR_ENTRY.size  # 16 bytes
+_BITMAPINFOHEADER_SIZE = 40
+_BI_RGB = 0
 
 
 class IcoOptimizer(Optimizer):
@@ -98,13 +101,14 @@ def _optimize_ico(data: bytes, temp_dir: Path, filename: str) -> bytes:
         frame = data[img_offset : img_offset + img_size]
         frames.append(frame)
 
-    # Optimise any PNG frames
+    # Convert BMP-backed frames to PNG when possible, then optimise PNG frames.
     optimized_frames: list[bytes] = []
     for i, frame in enumerate(frames):
-        if frame.startswith(_PNG_MAGIC):
-            optimized_frames.append(_optimize_png_frame(frame, temp_dir, i))
-        else:
-            optimized_frames.append(frame)
+        normalized = _convert_bmp_frame_to_png(frame) or frame
+        if normalized.startswith(_PNG_MAGIC):
+            optimized_frames.append(_optimize_png_frame(normalized, temp_dir, i))
+            continue
+        optimized_frames.append(normalized)
 
     # Rebuild the ICO file with updated sizes and offsets
     return _repack(count, entries, optimized_frames)
@@ -142,6 +146,92 @@ def _optimize_png_frame(png_bytes: bytes, temp_dir: Path, index: int) -> bytes:
         pass  # If anything goes wrong, keep the original frame
 
     return png_bytes
+
+
+def _convert_bmp_frame_to_png(frame: bytes) -> bytes | None:
+    """Convert a BMP/DIB-backed ICO frame to PNG when it is a simple 32-bit icon.
+
+    This intentionally handles only the common uncompressed BGRA case exported
+    by design tools. Anything more exotic is left untouched.
+    """
+    if frame.startswith(_PNG_MAGIC) or len(frame) < _BITMAPINFOHEADER_SIZE:
+        return None
+
+    (
+        header_size,
+        width,
+        height_twice,
+        planes,
+        bit_count,
+        compression,
+        image_size,
+        _xppm,
+        _yppm,
+        _colors_used,
+        _colors_important,
+    ) = struct.unpack_from("<IIIHHIIIIII", frame, 0)
+
+    if header_size != _BITMAPINFOHEADER_SIZE or width == 0 or height_twice == 0:
+        return None
+    if planes != 1 or bit_count != 32 or compression != _BI_RGB:
+        return None
+    if height_twice % 2 != 0:
+        return None
+
+    height = height_twice // 2
+    xor_row_size = width * 4
+    xor_size = xor_row_size * height
+    xor_offset = _BITMAPINFOHEADER_SIZE
+    and_row_size = ((width + 31) // 32) * 4
+    and_offset = xor_offset + xor_size
+    and_size = and_row_size * height
+
+    if len(frame) < and_offset + and_size:
+        return None
+
+    xor_bitmap = frame[xor_offset:and_offset]
+    and_mask = frame[and_offset : and_offset + and_size]
+
+    raw_rows = bytearray()
+    for y in range(height):
+        src_y = height - 1 - y  # DIB rows are stored bottom-up
+        xor_row = xor_bitmap[src_y * xor_row_size : (src_y + 1) * xor_row_size]
+        mask_row = and_mask[src_y * and_row_size : (src_y + 1) * and_row_size]
+
+        raw_rows.append(0)  # PNG filter: none
+        for x in range(width):
+            pixel = x * 4
+            b, g, r, a = xor_row[pixel : pixel + 4]
+            if a == 0 and _and_mask_bit(mask_row, x):
+                raw_rows.extend((r, g, b, 0))
+            else:
+                raw_rows.extend((r, g, b, a))
+
+    return _build_png(width, height, bytes(raw_rows))
+
+
+def _and_mask_bit(mask_row: bytes, x: int) -> int:
+    byte = mask_row[x // 8]
+    shift = 7 - (x % 8)
+    return (byte >> shift) & 1
+
+
+def _build_png(width: int, height: int, raw_rows: bytes) -> bytes:
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    idat = zlib.compress(raw_rows, level=9)
+    return b"".join(
+        [
+            _PNG_MAGIC,
+            _png_chunk(b"IHDR", ihdr),
+            _png_chunk(b"IDAT", idat),
+            _png_chunk(b"IEND", b""),
+        ]
+    )
+
+
+def _png_chunk(tag: bytes, data: bytes) -> bytes:
+    crc = zlib.crc32(tag + data) & 0xFFFFFFFF
+    return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
 
 
 def _repack(count: int, entries: list[list], frames: list[bytes]) -> bytes:
