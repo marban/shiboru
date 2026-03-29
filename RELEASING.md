@@ -120,15 +120,16 @@ copy it into the tap repo on each release.
 
 ## Updating Python dependencies in the formula
 
-The Homebrew formula pins `scour` with an explicit URL and SHA256. When `scour`
-releases a new version:
+The Homebrew formula currently pins `scour` and `six` with explicit URLs and
+SHA256 values. `six` is required at runtime because `scour` imports it. When
+either package changes:
 
-1. Find the new sdist URL on [PyPI](https://pypi.org/project/scour/#files).
+1. Find the new sdist URL on PyPI.
 2. Compute its SHA256:
    ```sh
    curl -sL <url> | shasum -a 256
    ```
-3. Update the `resource "scour"` block in the formula.
+3. Update the matching `resource` block in the formula.
 4. Test locally with `brew install --build-from-source Formula/shiboru.rb`.
 5. Release as normal (bump patch version, new tag, update tap).
 
