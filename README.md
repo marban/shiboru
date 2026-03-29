@@ -165,7 +165,8 @@ brew install gifsicle    # GIF
 ```
 
 SVG optimization uses `scour`, which is a Python library bundled with `shiboru`
-— no separate install required.
+— no separate install required. By default, `shiboru` strips comments and
+descriptive SVG elements such as `<metadata>`, `<title>`, and `<desc>`.
 
 ### Apple Silicon vs Intel
 

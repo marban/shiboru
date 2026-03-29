@@ -30,7 +30,7 @@ class SvgOptimizer(Optimizer):
         options.indent_type = "none"  # remove all whitespace (big win)
         options.indent_depth = 0
         options.strip_xml_prolog = True  # not needed by HTML5 browsers
-        options.remove_metadata = True  # <metadata> not needed on web
+        options.remove_descriptive_elements = True  # strip <title>, <desc>, <metadata>
         options.strip_xml_space_attribute = True  # xml:space not needed on web
 
         try:
