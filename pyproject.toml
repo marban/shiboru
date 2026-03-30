@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "shiboru"
-version = "1.0.5"
+version = "1.0.6"
 description = "Opinionated macOS command-line image optimizer"
 requires-python = ">=3.13"
 license = { text = "MIT" }
@@ -12,6 +12,10 @@ dependencies = [
     "scour>=0.38",
     "six>=1.17",
 ]
+
+[project.urls]
+Homepage = "https://shiboru.com"
+Repository = "https://github.com/marban/shiboru"
 
 [project.optional-dependencies]
 dev = [

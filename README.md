@@ -2,6 +2,8 @@
 
 A macOS command-line image optimizer. Supports PNG, JPEG, GIF, SVG, and ICO.
 
+By Thomas Marban: https://thomas.me
+
 > **shiboru** (絞る) — Japanese for "to squeeze"
 
 ---
